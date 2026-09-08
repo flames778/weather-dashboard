@@ -529,22 +529,12 @@ function renderHourly(fd) {
   if (!fd.list || !fd.list.length) { ui.hourlySection.style.display = 'none'; return; }
   ui.hourlySection.style.display = 'block';
   const now = Date.now() / 1000;
-  const upcoming = fd.list.filter(f => f.dt >= now).slice(0, 12);
+  const upcoming = fd.list.filter(f => f.dt >= now).slice(0, 8);
   ui.hourlyList.innerHTML = upcoming.map(h => {
     const hr = new Date(h.dt * 1000).toLocaleTimeString('en-US', { hour: 'numeric', hour12: true });
-    const pop = h.pop ? Math.round(h.pop * 100) : 0;
-    return `<div class="hourly-card">
-      <p class="h-time">${hr}</p>
+    return `<div class="hourly-card"><p class="h-time">${hr}</p>
       <img src="https://openweathermap.org/img/wn/${h.weather[0].icon}@2x.png" alt="" class="h-icon">
-      <p class="h-temp">${toUnit(h.main.temp)}${unitLabel()}</p>
-      <p class="h-desc">${h.weather[0].main}</p>
-      <div class="h-details">
-        <span class="h-detail">&#128167; ${h.main.humidity}%</span>
-        <span class="h-detail">&#127744; ${h.wind.speed}m/s</span>
-        ${pop > 0 ? `<span class="h-detail h-rain">&#127783; ${pop}%</span>` : ''}
-      </div>
-      <p class="h-feels">Feels ${toUnit(h.main.feels_like)}°</p>
-    </div>`;
+      <p class="h-temp">${toUnit(h.main.temp)}${unitLabel()}</p><p class="h-desc">${h.weather[0].main}</p></div>`;
   }).join('');
 }
 
@@ -554,36 +544,17 @@ function renderForecast5Day(fd) {
   ui.forecastSection.style.display = 'block';
   const days = {};
   fd.list.forEach(item => {
-    const dateKey = new Date(item.dt * 1000).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-    if (!days[dateKey]) days[dateKey] = { temps: [], icons: [], descs: [], humidity: [], wind: [], pops: [], rain: [] };
-    days[dateKey].temps.push(item.main.temp);
-    days[dateKey].icons.push(item.weather[0].icon);
-    days[dateKey].descs.push(item.weather[0].description);
-    days[dateKey].humidity.push(item.main.humidity);
-    days[dateKey].wind.push(item.wind.speed);
-    days[dateKey].pops.push(item.pop || 0);
-    if (item.rain) days[dateKey].rain.push(item.rain['3h'] || 0);
+    const date = new Date(item.dt * 1000).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+    if (!days[date]) days[date] = { temps: [], icons: [], descs: [] };
+    days[date].temps.push(item.main.temp); days[date].icons.push(item.weather[0].icon); days[date].descs.push(item.weather[0].main);
   });
-  ui.forecastList.innerHTML = Object.entries(days).slice(0, 7).map(([day, d]) => {
+  ui.forecastList.innerHTML = Object.entries(days).slice(0, 5).map(([day, d]) => {
     const hi = Math.max(...d.temps), lo = Math.min(...d.temps);
-    const avgHum = Math.round(d.humidity.reduce((a, b) => a + b, 0) / d.humidity.length);
-    const maxWind = Math.max(...d.wind);
-    const maxPop = Math.max(...d.pops);
-    const totalRain = d.rain.reduce((a, b) => a + b, 0);
-    const midI = d.icons[Math.floor(d.icons.length / 2)];
-    const midD = d.descs[Math.floor(d.descs.length / 2)];
-    return `<div class="fc-card">
-      <p class="fc-day">${day}</p>
+    const midI = d.icons[Math.floor(d.icons.length/2)], midD = d.descs[Math.floor(d.descs.length/2)];
+    return `<div class="fc-card"><p class="fc-day">${day}</p>
       <img src="https://openweathermap.org/img/wn/${midI}@2x.png" alt="" class="fc-icon">
       <p class="fc-desc">${midD}</p>
-      <p class="fc-temp"><span class="fc-hi">${toUnit(hi)}&deg;</span> / <span class="fc-lo">${toUnit(lo)}&deg;</span></p>
-      <div class="fc-extra">
-        <span class="fc-extra-item" title="Humidity">&#128167; ${avgHum}%</span>
-        <span class="fc-extra-item" title="Max Wind">&#127744; ${maxWind.toFixed(1)}</span>
-        ${maxPop > 0.1 ? `<span class="fc-extra-item fc-rain" title="Rain Chance">&#127783; ${Math.round(maxPop * 100)}%</span>` : ''}
-        ${totalRain > 0 ? `<span class="fc-extra-item fc-rain" title="Rain Volume">&#128167; ${totalRain.toFixed(1)}mm</span>` : ''}
-      </div>
-    </div>`;
+      <p class="fc-temp"><span class="fc-hi">${toUnit(hi)}&deg;</span> / <span class="fc-lo">${toUnit(lo)}&deg;</span></p></div>`;
   }).join('');
 }
 
@@ -615,84 +586,25 @@ function renderSun(d) {
 }
 
 // ====== WIND COMPASS ======
-function getBeaufort(speed) {
-  const scale = [
-    [0.5, 0, 'Calm'], [1.5, 1, 'Light Air'], [3.3, 2, 'Light Breeze'],
-    [5.5, 3, 'Gentle Breeze'], [8.0, 4, 'Moderate Breeze'], [10.7, 5, 'Fresh Breeze'],
-    [13.8, 6, 'Strong Breeze'], [17.1, 7, 'Near Gale'], [20.7, 8, 'Gale'],
-    [24.4, 9, 'Strong Gale'], [28.4, 10, 'Storm'], [32.6, 11, 'Violent Storm']
-  ];
-  for (let i = scale.length - 1; i >= 0; i--) {
-    if (speed >= scale[i][0]) return { num: scale[i][1], name: scale[i][2] };
-  }
-  return { num: 0, name: 'Calm' };
-}
-
-let windAnimFrame = null;
-let windParticles = [];
-
 function renderWind(d) {
   if (!d.wind) { ui.windSection.style.display = 'none'; return; }
   ui.windSection.style.display = 'block';
   const deg = d.wind.deg || 0, speed = d.wind.speed || 0, gust = d.wind.gust;
   const dirs = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
-  const dirName = dirs[Math.round(deg / 22.5) % 16];
-  const beaufort = getBeaufort(speed);
-  const windChill = speed > 1.3 ? (13.12 + 0.6215 * d.main.temp - 11.37 * Math.pow(speed * 3.6, 0.16) + 0.3965 * d.main.temp * Math.pow(speed * 3.6, 0.16)).toFixed(1) : d.main.temp.toFixed(1);
-
-  windParticles = [];
-  for (let i = 0; i < 20; i++) {
-    windParticles.push({
-      x: Math.random() * 200, y: Math.random() * 200,
-      speed: 0.5 + Math.random() * 2, opacity: 0.2 + Math.random() * 0.5,
-      size: 1 + Math.random() * 2
-    });
-  }
-
+  const dirName = dirs[Math.round(deg/22.5)%16];
   ui.windCompass.innerHTML = `
-    <div class="compass-wrapper">
-      <div class="compass"><svg viewBox="0 0 200 200" class="compass-svg" id="windSvg">
-        <defs>
-          <filter id="glow"><feGaussianBlur stdDeviation="2" result="coloredBlur"/>
-            <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
-          <linearGradient id="needleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#42a5f5"/><stop offset="100%" stop-color="#1565c0"/>
-          </linearGradient>
-        </defs>
-        <circle cx="100" cy="100" r="92" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
-        <circle cx="100" cy="100" r="75" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
-        <circle cx="100" cy="100" r="58" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
-        ${[0,45,90,135,180,225,270,315].map(a => {
-          const r1 = 85, r2 = 92;
-          return `<line x1="${100+r1*Math.sin(a*Math.PI/180)}" y1="${100-r1*Math.cos(a*Math.PI/180)}" x2="${100+r2*Math.sin(a*Math.PI/180)}" y2="${100-r2*Math.cos(a*Math.PI/180)}" stroke="rgba(255,255,255,0.2)" stroke-width="${a%90===0?2:1}"/>`;
-        }).join('')}
-        <text x="100" y="18" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="13" font-weight="bold">N</text>
-        <text x="188" y="105" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="11">E</text>
-        <text x="100" y="196" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="11">S</text>
-        <text x="14" y="105" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="11">W</text>
-        <line x1="100" y1="100" x2="${100+72*Math.sin(deg*Math.PI/180)}" y2="${100-72*Math.cos(deg*Math.PI/180)}" stroke="url(#needleGrad)" stroke-width="4" stroke-linecap="round" filter="url(#glow)" id="windNeedle"/>
-        <circle cx="100" cy="100" r="6" fill="#42a5f5" filter="url(#glow)"/>
-        <circle cx="100" cy="100" r="3" fill="#fff"/>
-      </svg></div>
-      <div class="wind-info">
-        <p class="wind-speed">${speed} <small>m/s</small></p>
-        <p class="wind-dir">${dirName} (${Math.round(deg)}&deg;)</p>
-        <div class="wind-beaufort"><span class="wb-num">Beaufort ${beaufort.num}</span><span class="wb-name">${beaufort.name}</span></div>
-        ${gust ? `<p class="wind-gust">Gusts: ${gust} m/s</p>` : ''}
-        <p class="wind-chill">Wind Chill: ${windChill}${unitLabel()}</p>
-      </div>
-    </div>`;
-
-  // Animate needle on load
-  const needle = document.getElementById('windNeedle');
-  if (needle) {
-    needle.style.transformOrigin = '100px 100px';
-    needle.style.transition = 'transform 1.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
-    needle.style.transform = `rotate(0deg)`;
-    requestAnimationFrame(() => {
-      needle.style.transform = `rotate(0deg)`;
-    });
-  }
+    <div class="compass"><svg viewBox="0 0 200 200" class="compass-svg">
+      <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+      <circle cx="100" cy="100" r="60" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+      <text x="100" y="22" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="12">N</text>
+      <text x="185" y="105" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="11">E</text>
+      <text x="100" y="195" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="11">S</text>
+      <text x="16" y="105" text-anchor="middle" fill="rgba(255,255,255,0.5)" font-size="11">W</text>
+      <line x1="100" y1="100" x2="${100+70*Math.sin(deg*Math.PI/180)}" y2="${100-70*Math.cos(deg*Math.PI/180)}" stroke="#64b5f6" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="100" cy="100" r="5" fill="#64b5f6"/>
+    </svg></div>
+    <div class="wind-info"><p class="wind-speed">${speed} <small>m/s</small></p>
+      <p class="wind-dir">${dirName} (${Math.round(deg)}&deg;)</p>${gust?`<p class="wind-gust">Gusts: ${gust} m/s</p>`:''}</div>`;
 }
 
 // ====== AIR QUALITY ======
@@ -700,70 +612,26 @@ function renderAir(data) {
   if (!data.list || !data.list.length) { ui.airSection.style.display = 'none'; return; }
   ui.airSection.style.display = 'block';
   const a = data.list[0], aqi = a.main.aqi;
-  const labels = ['Good', 'Fair', 'Moderate', 'Poor', 'Very Poor'];
-  const colors = ['#4caf50', '#8bc34a', '#ff9800', '#f44336', '#9c27b0'];
-  const health = [
-    'Air quality is satisfactory. Enjoy outdoor activities.',
-    'Acceptable quality. Unusually sensitive people should limit prolonged outdoor exertion.',
-    'Moderate risk. Everyone should reduce prolonged outdoor exertion.',
-    'High risk. Avoid prolonged outdoor exertion. Wear a mask if sensitive.',
-    'Very high risk. Stay indoors. Use air purifiers if available.'
-  ];
+  const labels = ['Good','Fair','Moderate','Poor','Very Poor'];
+  const colors = ['#4caf50','#8bc34a','#ff9800','#f44336','#9c27b0'];
   const c = a.components;
-  const maxVal = Math.max(c.co / 10, c.no2, c.o3, c.pm2_5 * 2, c.pm10, c.so2);
-  const pollutants = [
-    { name: 'CO', val: c.co, unit: 'μg/m³', max: 10000, bar: c.co / 100 },
-    { name: 'NO₂', val: c.no2, unit: 'μg/m³', max: 200, bar: c.no2 / 2 },
-    { name: 'O₃', val: c.o3, unit: 'μg/m³', max: 180, bar: c.o3 / 1.8 },
-    { name: 'PM2.5', val: c.pm2_5, unit: 'μg/m³', max: 75, bar: c.pm2_5 / 0.75 },
-    { name: 'PM10', val: c.pm10, unit: 'μg/m³', max: 200, bar: c.pm10 / 2 },
-    { name: 'SO₂', val: c.so2, unit: 'μg/m³', max: 350, bar: c.so2 / 3.5 }
-  ];
-
-  ui.airResult.innerHTML = `
-    <div class="air-card">
-      <div class="air-left">
-        <div class="aqi-badge" style="background:${colors[aqi - 1]}">
-          <span class="aqi-num">${aqi}</span>
-          <span class="aqi-label">${labels[aqi - 1]}</span>
-        </div>
-        <p class="air-health">${health[aqi - 1]}</p>
-      </div>
-      <div class="air-bars">
-        ${pollutants.map(p => `
-          <div class="air-bar-row">
-            <span class="abr-name">${p.name}</span>
-            <div class="abr-track"><div class="abr-fill" style="width:${Math.min(100, p.bar)}%;background:${colors[aqi - 1]}"></div></div>
-            <span class="abr-val">${p.val.toFixed(1)}</span>
-          </div>
-        `).join('')}
-      </div>
-    </div>`;
+  ui.airResult.innerHTML = `<div class="air-card">
+    <div class="aqi-badge" style="background:${colors[aqi-1]}"><span class="aqi-num">${aqi}</span><span class="aqi-label">${labels[aqi-1]}</span></div>
+    <div class="air-pollutants">
+      <div class="pollutant"><span>CO</span><span>${c.co.toFixed(0)} &micro;g/m&sup3;</span></div>
+      <div class="pollutant"><span>NO<sub>2</sub></span><span>${c.no2.toFixed(1)} &micro;g/m&sup3;</span></div>
+      <div class="pollutant"><span>O<sub>3</sub></span><span>${c.o3.toFixed(1)} &micro;g/m&sup3;</span></div>
+      <div class="pollutant"><span>PM2.5</span><span>${c.pm2_5.toFixed(1)} &micro;g/m&sup3;</span></div>
+      <div class="pollutant"><span>PM10</span><span>${c.pm10.toFixed(1)} &micro;g/m&sup3;</span></div>
+      <div class="pollutant"><span>SO<sub>2</sub></span><span>${c.so2.toFixed(1)} &micro;g/m&sup3;</span></div>
+    </div></div>`;
 }
 
 // ====== MAP ======
-let weatherLayers = {};
-let activeLayer = null;
 function renderMap(lat, lon, name) {
   ui.mapSection.style.display = 'block';
-  if (!map) {
-    map = L.map('weatherMap').setView([lat, lon], 10);
-    const base = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map);
-    const clouds = L.tileLayer('https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=' + '', { opacity: 0.5, attribution: 'OWM Clouds' });
-    const temp = L.tileLayer('https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=' + '', { opacity: 0.4, attribution: 'OWM Temp' });
-    const wind = L.tileLayer('https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=' + '', { opacity: 0.4, attribution: 'OWM Wind' });
-    const precip = L.tileLayer('https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=' + '', { opacity: 0.5, attribution: 'OWM Precip' });
-    weatherLayers = { base, clouds, temp, wind, precip };
-
-    // Add layer control
-    const layerControl = L.control.layers(null, {
-      '☁️ Clouds': clouds, '🌡️ Temperature': temp, '💨 Wind': wind, '🌧️ Precipitation': precip
-    }, { collapsed: false }).addTo(map);
-
-    setTimeout(() => map.invalidateSize(), 100);
-  } else {
-    map.setView([lat, lon], 10);
-  }
+  if (!map) { map = L.map('weatherMap').setView([lat, lon], 10); L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap' }).addTo(map); setTimeout(() => map.invalidateSize(), 100); }
+  else map.setView([lat, lon], 10);
   if (mapMarker) map.removeLayer(mapMarker);
   mapMarker = L.marker([lat, lon]).addTo(map).bindPopup(`<b>${name}</b>`).openPopup();
   setTimeout(() => map.invalidateSize(), 200);
