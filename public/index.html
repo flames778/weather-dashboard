@@ -15,25 +15,28 @@
             <div class="header-top">
                 <h1>&#9925; Weather Dashboard</h1>
                 <div class="header-controls">
-                    <button id="unitToggle" class="unit-toggle" title="Toggle temperature unit">&deg;C / &deg;F</button>
-                    <button id="darkModeToggle" class="dark-toggle" title="Toggle dark mode">&#9790;</button>
+                    <button id="unitToggle" class="ctrl-btn" title="Toggle unit">&deg;C / &deg;F</button>
+                    <button id="darkModeToggle" class="ctrl-btn" title="Dark mode">&#9790;</button>
+                    <button id="soundToggle" class="ctrl-btn" title="Weather sounds">&#9835;</button>
+                    <button id="notifyToggle" class="ctrl-btn" title="Enable notifications">&#128276;</button>
                 </div>
             </div>
             <div class="search-bar">
                 <input type="text" id="searchInput" placeholder="Search for a city..." autocomplete="off">
                 <button id="searchButton">Search</button>
+                <button id="geoButton" class="geo-btn" title="Use my location">&#9737;</button>
             </div>
         </header>
 
         <main>
-            <section id="recentSection" class="recent-section" style="display:none;">
-                <h3>Recent Searches</h3>
-                <div id="recentList" class="recent-list"></div>
+            <section id="recentSection" class="tag-section" style="display:none;">
+                <h3>Recent</h3>
+                <div id="recentList" class="tag-list"></div>
             </section>
 
-            <section id="favoritesSection" class="favorites-section" style="display:none;">
-                <h3>Favorites <span class="star-icon">&#9733;</span></h3>
-                <div id="favoritesList" class="favorites-list"></div>
+            <section id="favoritesSection" class="tag-section" style="display:none;">
+                <h3>&#9733; Favorites</h3>
+                <div id="favoritesList" class="tag-list"></div>
             </section>
 
             <div id="loading" class="loading" style="display:none;">
@@ -43,41 +46,95 @@
 
             <div id="error" class="error" style="display:none;"></div>
 
-            <div id="weatherResult" class="weather-dashboard"></div>
+            <div id="weatherResult"></div>
 
-            <section id="hourlySection" class="hourly-section" style="display:none;">
-                <h3>Hourly Forecast</h3>
+            <section id="clothingSection" class="panel" style="display:none;">
+                <h3>&#128085; What to Wear</h3>
+                <div id="clothingResult" class="clothing-result"></div>
+            </section>
+
+            <section id="uvSection" class="panel" style="display:none;">
+                <h3>&#9728; UV Index</h3>
+                <div id="uvResult" class="uv-result"></div>
+            </section>
+
+            <section id="moonSection" class="panel" style="display:none;">
+                <h3>&#127769; Moon Phase</h3>
+                <div id="moonResult" class="moon-result"></div>
+            </section>
+
+            <section id="tempTrendSection" class="panel" style="display:none;">
+                <h3>&#128200; Temperature Trend (24h)</h3>
+                <div id="tempTrendResult" class="temp-trend-result"></div>
+            </section>
+
+            <section id="hourlySection" class="panel" style="display:none;">
+                <h3>&#128336; Hourly Forecast</h3>
                 <div id="hourlyList" class="hourly-list"></div>
             </section>
 
-            <section id="forecastSection" class="forecast-section" style="display:none;">
-                <h3>7-Day Forecast</h3>
+            <section id="forecastSection" class="panel" style="display:none;">
+                <h3>&#128197; 5-Day Forecast</h3>
                 <div id="forecastList" class="forecast-list"></div>
             </section>
 
-            <section id="sunSection" class="sun-section" style="display:none;">
-                <h3>Sunrise &amp; Sunset</h3>
+            <section id="sunSection" class="panel" style="display:none;">
+                <h3>&#127749; Sunrise &amp; Sunset</h3>
                 <div id="sunArc" class="sun-arc-container"></div>
             </section>
 
-            <section id="windSection" class="wind-section" style="display:none;">
-                <h3>Wind</h3>
+            <section id="windSection" class="panel" style="display:none;">
+                <h3>&#127744; Wind</h3>
                 <div id="windCompass" class="wind-compass-container"></div>
             </section>
 
-            <section id="airSection" class="air-section" style="display:none;">
-                <h3>Air Quality</h3>
+            <section id="airSection" class="panel" style="display:none;">
+                <h3>&#127811; Air Quality</h3>
                 <div id="airResult" class="air-result"></div>
             </section>
 
-            <section id="mapSection" class="map-section" style="display:none;">
-                <h3>Location</h3>
+            <section id="mapSection" class="panel" style="display:none;">
+                <h3>&#128506; Location</h3>
                 <div id="weatherMap" class="weather-map"></div>
             </section>
 
-            <section id="alertsSection" class="alerts-section" style="display:none;">
-                <h3>Weather Alerts</h3>
+            <section id="alertsSection" class="panel" style="display:none;">
+                <h3>&#9888; Weather Alerts</h3>
                 <div id="alertsList" class="alerts-list"></div>
+            </section>
+
+            <section id="multiCitySection" class="panel" style="display:none;">
+                <h3>&#127758; Multi-City Dashboard</h3>
+                <div id="multiCityGrid" class="multi-city-grid"></div>
+            </section>
+
+            <section id="travelSection" class="panel" style="display:none;">
+                <h3>&#9992; Travel Planner</h3>
+                <div class="travel-controls">
+                    <input type="text" id="travelInput" placeholder="Add a city to compare..." autocomplete="off">
+                    <button id="travelAddBtn">Add</button>
+                    <button id="travelClearBtn" class="ctrl-btn">Clear All</button>
+                </div>
+                <div id="travelGrid" class="travel-grid"></div>
+            </section>
+
+            <section id="calendarSection" class="panel" style="display:none;">
+                <h3>&#128197; Weather Calendar</h3>
+                <div id="calendarResult" class="calendar-result"></div>
+            </section>
+
+            <section id="shareSection" class="panel" style="display:none;">
+                <h3>&#128228; Share Weather</h3>
+                <button id="shareBtn" class="share-btn">Generate Shareable Card</button>
+                <div id="sharePreview" class="share-preview" style="display:none;">
+                    <canvas id="shareCanvas" width="600" height="338"></canvas>
+                    <button id="downloadShareBtn" class="ctrl-btn">&#11015; Download Image</button>
+                </div>
+            </section>
+
+            <section id="widgetSection" class="panel" style="display:none;">
+                <h3>&#128230; Embed Widget</h3>
+                <div id="widgetResult" class="widget-result"></div>
             </section>
         </main>
 

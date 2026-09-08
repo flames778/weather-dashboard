@@ -29,6 +29,19 @@ app.get('/api/weather', async (req, res) => {
   }
 });
 
+app.get('/api/weather/coords', async (req, res) => {
+  const { lat, lon } = req.query;
+  if (!lat || !lon) return res.status(400).json({ error: 'lat and lon are required' });
+  try {
+    const apiKey = process.env.API_KEY;
+    if (!apiKey) return res.status(500).json({ error: 'API key not configured' });
+    const data = await owFetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`);
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to fetch weather' });
+  }
+});
+
 app.get('/api/forecast', async (req, res) => {
   const { lat, lon } = req.query;
   if (!lat || !lon) return res.status(400).json({ error: 'lat and lon are required' });
