@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Dashboard</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <canvas id="weatherCanvas"></canvas>
+
+    <div class="app-container">
+        <header>
+            <div class="header-top">
+                <h1>&#9925; Weather Dashboard</h1>
+                <div class="header-controls">
+                    <button id="unitToggle" class="unit-toggle" title="Toggle temperature unit">&deg;C / &deg;F</button>
+                    <button id="darkModeToggle" class="dark-toggle" title="Toggle dark mode">&#9790;</button>
+                </div>
+            </div>
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="Search for a city..." autocomplete="off">
+                <button id="searchButton">Search</button>
+            </div>
+        </header>
+
+        <main>
+            <section id="recentSection" class="recent-section" style="display:none;">
+                <h3>Recent Searches</h3>
+                <div id="recentList" class="recent-list"></div>
+            </section>
+
+            <section id="favoritesSection" class="favorites-section" style="display:none;">
+                <h3>Favorites <span class="star-icon">&#9733;</span></h3>
+                <div id="favoritesList" class="favorites-list"></div>
+            </section>
+
+            <div id="loading" class="loading" style="display:none;">
+                <div class="spinner"></div>
+                <p>Fetching weather data...</p>
+            </div>
+
+            <div id="error" class="error" style="display:none;"></div>
+
+            <div id="weatherResult" class="weather-dashboard"></div>
+
+            <section id="hourlySection" class="hourly-section" style="display:none;">
+                <h3>Hourly Forecast</h3>
+                <div id="hourlyList" class="hourly-list"></div>
+            </section>
+
+            <section id="forecastSection" class="forecast-section" style="display:none;">
+                <h3>7-Day Forecast</h3>
+                <div id="forecastList" class="forecast-list"></div>
+            </section>
+
+            <section id="sunSection" class="sun-section" style="display:none;">
+                <h3>Sunrise &amp; Sunset</h3>
+                <div id="sunArc" class="sun-arc-container"></div>
+            </section>
+
+            <section id="windSection" class="wind-section" style="display:none;">
+                <h3>Wind</h3>
+                <div id="windCompass" class="wind-compass-container"></div>
+            </section>
+
+            <section id="airSection" class="air-section" style="display:none;">
+                <h3>Air Quality</h3>
+                <div id="airResult" class="air-result"></div>
+            </section>
+
+            <section id="mapSection" class="map-section" style="display:none;">
+                <h3>Location</h3>
+                <div id="weatherMap" class="weather-map"></div>
+            </section>
+
+            <section id="alertsSection" class="alerts-section" style="display:none;">
+                <h3>Weather Alerts</h3>
+                <div id="alertsList" class="alerts-list"></div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2026 Weather Dashboard &mdash; Powered by OpenWeatherMap</p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="particles.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
