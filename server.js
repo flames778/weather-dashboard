@@ -4,8 +4,17 @@ const path = require('path');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const isVercel = process.env.VERCEL === '1';
 
-app.use(express.static(path.join(__dirname, 'public')));
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET');
+  next();
+});
+
+if (!isVercel) {
+  app.use(express.static(path.join(__dirname, 'public')));
+}
 
 async function owFetch(url) {
   const response = await fetch(url);
@@ -68,10 +77,14 @@ app.get('/api/air', async (req, res) => {
   }
 });
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+if (!isVercel) {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`Weather Dashboard running at http://localhost:${PORT}`);
 });
+
+module.exports = app;
