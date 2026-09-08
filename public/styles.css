@@ -82,6 +82,17 @@ body:not(.dark) .wc-label { color: #aaa; }
 .wc-val { font-size: 0.95em; font-weight: 600; color: #e0e0e0; }
 body:not(.dark) .wc-val { color: #444; }
 
+/* All Temperature Units */
+.temp-all-units {
+  display: flex; gap: 12px; margin-top: 14px; padding: 12px 16px;
+  background: rgba(255,255,255,0.04); border-radius: 12px; justify-content: center;
+}
+body:not(.dark) .temp-all-units { background: rgba(0,0,0,0.04); }
+.tui { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; }
+.tui-val { font-size: 1.1em; font-weight: 700; color: #64b5f6; }
+.tui-label { font-size: 0.65em; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.35); }
+body:not(.dark) .tui-label { color: #aaa; }
+
 /* Tags */
 .tag-section { margin-bottom: 14px; }
 .tag-list { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -132,6 +143,13 @@ body:not(.dark) .moon-card { background: rgba(255,255,255,0.85); border: none; }
 body:not(.dark) .moon-name { color: #333; }
 .moon-illum { font-size: 0.85em; color: rgba(255,255,255,0.5); margin-top: 4px; }
 body:not(.dark) .moon-illum { color: #999; }
+.moon-arc { max-width: 300px; margin: 12px auto 0; }
+.moon-svg { width: 100%; }
+.moon-times { display: flex; justify-content: space-around; margin-top: 10px; }
+.moon-time { display: flex; flex-direction: column; gap: 2px; text-align: center; }
+.mt-label { font-size: 0.7em; text-transform: uppercase; letter-spacing: 0.5px; color: rgba(255,255,255,0.4); }
+body:not(.dark) .mt-label { color: #aaa; }
+.mt-val { font-size: 0.9em; font-weight: 600; color: #7986cb; }
 
 /* Temp Trend */
 .temp-trend-result { overflow-x: auto; }

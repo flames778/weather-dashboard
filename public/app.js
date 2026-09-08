@@ -238,7 +238,7 @@ function renderAll(data) {
   particles.setWeather(data.weather.weather[0].main);
   playWeatherSounds(data.weather.weather[0].main);
   renderClothing(data.weather);
-  renderMoon(data.weather.dt);
+  renderMoon(data.weather.dt, data.weather.coord.lat, data.weather.coord.lon);
   if (data.forecast && data.forecast.list) {
     renderHourly(data.forecast); renderForecast5Day(data.forecast); renderTempTrend(data.forecast);
     renderCalendar(data.forecast); renderMultiCity(data.weather); checkWeatherAlerts(data);
@@ -250,9 +250,20 @@ function renderAll(data) {
 }
 
 // ====== WEATHER CARD ======
+function celsiusToAll(c) {
+  return {
+    c: Math.round(c),
+    f: Math.round(c * 9 / 5 + 32),
+    k: Math.round(c + 273.15)
+  };
+}
 function renderWeatherCard(d) {
   const favs = getFavorites();
   const isFav = favs.some(f => f.city === d.name && f.country === d.sys.country);
+  const t = celsiusToAll(d.main.temp);
+  const fl = celsiusToAll(d.main.feels_like);
+  const mn = celsiusToAll(d.main.temp_min);
+  const mx = celsiusToAll(d.main.temp_max);
   ui.weatherResult.innerHTML = `
     <div class="weather-card">
       <div class="wc-header">
@@ -267,6 +278,11 @@ function renderWeatherCard(d) {
           <p class="wc-desc">${d.weather[0].description}</p>
           <p class="wc-feels">Feels like ${toUnit(d.main.feels_like)}${unitLabel()}</p>
         </div>
+      </div>
+      <div class="temp-all-units">
+        <div class="tui"><span class="tui-val">${t.c}&deg;C</span><span class="tui-label">Celsius</span></div>
+        <div class="tui"><span class="tui-val">${t.f}&deg;F</span><span class="tui-label">Fahrenheit</span></div>
+        <div class="tui"><span class="tui-val">${t.k} K</span><span class="tui-label">Kelvin</span></div>
       </div>
       <div class="wc-details">
         <div class="wc-detail"><span class="wc-label">Humidity</span><span class="wc-val">${d.main.humidity}%</span></div>
@@ -359,18 +375,118 @@ function getMoonPhase(date) {
   if (b >= 8) b = 0;
   return b;
 }
-function renderMoon(dt) {
+
+function calcMoonriseSet(lat, lon, date) {
+  const year = date.getFullYear();
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  const rad = Math.PI / 180;
+  const deg = 180 / Math.PI;
+
+  let y = year, m = month;
+  if (m < 3) { y--; m += 12; }
+  m++;
+  const jd0 = Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * m) + day - 1524.5;
+  const T = (jd0 - 2451545.0) / 36525.0;
+
+  const L0 = (280.46646 + 36000.76983 * T + 0.0003032 * T * T) % 360;
+  const M = (357.52911 + 35999.05029 * T - 0.0001537 * T * T) % 360;
+  const Mrad = M * rad;
+  const C = (1.9146 - 0.004817 * T) * Math.sin(Mrad) + (0.019993 - 0.000101 * T) * Math.sin(2 * Mrad);
+  const sunLong = (L0 + C) % 360;
+  const sunAnom = M + C;
+  const sunR = 1.000001018 * (1 - 0.016708634 * Math.cos(Mrad));
+
+  const N = (125.0445 - 1934.13626 * T) % 360;
+  const Nrad = N * rad;
+  const p = -0.00569 - 0.00478 * Math.sin(Nrad);
+  const w = 218.316 + 481267.881 * T;
+  const moonLon = w + 6.289 * Math.sin(p * deg * rad + (6.289 * Math.sin((sunLong - w) * rad) * deg * rad)) / deg;
+  const moonLat = 5.128 * Math.sin((sunLong + 275.05 - 2.3) * rad);
+
+  const jd = jd0;
+  const h0 = (0.7275 * moonLat * rad) - 0.01454;
+  const cosH = (Math.sin(-0.01454) - Math.sin(lat * rad) * Math.sin(moonLat * rad)) /
+               (Math.cos(lat * rad) * Math.cos(moonLat * rad));
+  let H = 0;
+  if (cosH < -1) H = 180;
+  else if (cosH > 1) H = 0;
+  else H = Math.acos(cosH) * deg;
+
+  const moonPhaseAngle = ((sunLong - moonLon + 180) % 360) * rad;
+  const transitOffset = 2451545.0009 + 27.321661 * Math.atan2(Math.sin(moonPhaseAngle), Math.cos(moonPhaseAngle) * Math.cos(moonLat * rad));
+  const riseTime = transitOffset - H / 360 * 27.321661;
+  const setTime = transitOffset + H / 360 * 27.321661;
+
+  function jdToDate(jd) {
+    const d = new Date((jd - 2440587.5) * 86400000);
+    return d;
+  }
+
+  const rise = jdToDate(riseTime);
+  const set = jdToDate(setTime);
+  const transit = jdToDate(transitOffset);
+
+  // Adjust to current date
+  const riseLocal = new Date(date);
+  riseLocal.setHours(rise.getUTCHours(), rise.getUTCMinutes(), 0);
+  const setLocal = new Date(date);
+  setLocal.setHours(set.getUTCHours(), set.getUTCMinutes(), 0);
+  const transitLocal = new Date(date);
+  transitLocal.setHours(transit.getUTCHours(), transit.getUTCMinutes(), 0);
+
+  return { rise: riseLocal, set: setLocal, transit: transitLocal };
+}
+
+function renderMoon(dt, lat, lon) {
   ui.moonSection.style.display = 'block';
   const d = new Date(dt * 1000);
   const phase = getMoonPhase(d);
   const names = ['New Moon','Waxing Crescent','First Quarter','Waxing Gibbous','Full Moon','Waning Gibbous','Last Quarter','Waning Crescent'];
   const emojis = ['&#127761;','&#127762;','&#127763;','&#127764;','&#127765;','&#127766;','&#127767;','&#127768;'];
   const illumination = [0, 12, 25, 50, 75, 100, 75, 50, 25][phase] || 0;
+
+  const moonTimes = calcMoonriseSet(lat || 0, lon || 0, d);
+  const riseStr = moonTimes.rise.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  const setStr = moonTimes.set.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  const transitStr = moonTimes.transit.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+  const now = Date.now();
+  const riseT = moonTimes.rise.getTime();
+  const setT = moonTimes.set.getTime();
+  const transitT = moonTimes.transit.getTime();
+  let moonProgress = 0;
+  if (now >= riseT && now <= setT) {
+    moonProgress = (now - riseT) / (setT - riseT);
+  } else if (now > setT) {
+    moonProgress = 1;
+  }
+  const isUp = now >= riseT && now <= setT;
+
   ui.moonResult.innerHTML = `
     <div class="moon-card">
       <span class="moon-emoji">${emojis[phase]}</span>
       <p class="moon-name">${names[phase]}</p>
       <p class="moon-illum">${illumination}% illuminated</p>
+      <div class="moon-arc">
+        <svg viewBox="0 0 300 140" class="moon-svg">
+          <defs><linearGradient id="moonArcGrad" x1="0%" x2="100%">
+            <stop offset="0%" stop-color="#5c6bc0" stop-opacity="0.3"/>
+            <stop offset="50%" stop-color="#7986cb" stop-opacity="0.6"/>
+            <stop offset="100%" stop-color="#3f51b5" stop-opacity="0.3"/>
+          </linearGradient></defs>
+          <path d="M 20 120 Q 150 -10 280 120" fill="none" stroke="url(#moonArcGrad)" stroke-width="3" stroke-dasharray="6,4"/>
+          <line x1="20" y1="120" x2="280" y2="120" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+          <circle cx="${20 + moonProgress * 260}" cy="${120 - Math.sin(moonProgress * Math.PI) * 130}" r="10" fill="${isUp ? '#7986cb' : '#455a64'}"/>
+          <circle cx="20" cy="120" r="5" fill="#5c6bc0"/>
+          <circle cx="280" cy="120" r="5" fill="#3f51b5"/>
+        </svg>
+      </div>
+      <div class="moon-times">
+        <div class="moon-time"><span class="mt-label">Moonrise</span><span class="mt-val">${riseStr}</span></div>
+        <div class="moon-time"><span class="mt-label">Transit</span><span class="mt-val">${transitStr}</span></div>
+        <div class="moon-time"><span class="mt-label">Moonset</span><span class="mt-val">${setStr}</span></div>
+      </div>
     </div>`;
 }
 
